@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="680" viewBox="0 0 1100 680" role="img" aria-labelledby="title desc">
+  <title id="title">AtomQuest Goal Portal Architecture</title>
+  <desc id="desc">Architecture diagram showing browser frontend, Node backend, JSON persistence, reports, audit, notifications, and future Microsoft Entra integration.</desc>
+  <rect width="1100" height="680" fill="#f6f8fb"/>
+  <text x="60" y="64" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#18202f">AtomQuest Goal Setting &amp; Tracking Portal</text>
+  <text x="60" y="94" font-family="Arial, sans-serif" font-size="15" fill="#667085">Low-cost hackathon architecture with clear upgrade path</text>
+
+  <rect x="60" y="145" width="240" height="140" rx="8" fill="#ffffff" stroke="#dde3ea"/>
+  <text x="90" y="184" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#18202f">Browser SPA</text>
+  <text x="90" y="216" font-family="Arial, sans-serif" font-size="14" fill="#667085">Employee, Manager, Admin</text>
+  <text x="90" y="240" font-family="Arial, sans-serif" font-size="14" fill="#667085">Dashboards and workflows</text>
+  <text x="90" y="264" font-family="Arial, sans-serif" font-size="14" fill="#667085">HTML + CSS + JS</text>
+
+  <rect x="430" y="120" width="270" height="190" rx="8" fill="#ffffff" stroke="#0f766e" stroke-width="2"/>
+  <text x="465" y="160" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#18202f">Node.js API Server</text>
+  <text x="465" y="194" font-family="Arial, sans-serif" font-size="14" fill="#667085">Workflow validation</text>
+  <text x="465" y="218" font-family="Arial, sans-serif" font-size="14" fill="#667085">Approval and locking</text>
+  <text x="465" y="242" font-family="Arial, sans-serif" font-size="14" fill="#667085">Check-ins and scoring</text>
+  <text x="465" y="266" font-family="Arial, sans-serif" font-size="14" fill="#667085">CSV report generation</text>
+
+  <rect x="820" y="145" width="220" height="140" rx="8" fill="#ffffff" stroke="#dde3ea"/>
+  <text x="852" y="184" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#18202f">JSON Data Store</text>
+  <text x="852" y="216" font-family="Arial, sans-serif" font-size="14" fill="#667085">Users and hierarchy</text>
+  <text x="852" y="240" font-family="Arial, sans-serif" font-size="14" fill="#667085">Goals and actuals</text>
+  <text x="852" y="264" font-family="Arial, sans-serif" font-size="14" fill="#667085">Audit and escalations</text>
+
+  <path d="M300 215 H430" stroke="#0f766e" stroke-width="3" fill="none"/>
+  <polygon points="430,215 418,208 418,222" fill="#0f766e"/>
+  <text x="328" y="202" font-family="Arial, sans-serif" font-size="13" fill="#667085">REST API</text>
+
+  <path d="M700 215 H820" stroke="#0f766e" stroke-width="3" fill="none"/>
+  <polygon points="820,215 808,208 808,222" fill="#0f766e"/>
+  <text x="728" y="202" font-family="Arial, sans-serif" font-size="13" fill="#667085">File I/O</text>
+
+  <rect x="100" y="410" width="200" height="110" rx="8" fill="#ffffff" stroke="#dde3ea"/>
+  <text x="128" y="448" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#18202f">CSV Reports</text>
+  <text x="128" y="480" font-family="Arial, sans-serif" font-size="14" fill="#667085">Planned vs actual</text>
+  <text x="128" y="504" font-family="Arial, sans-serif" font-size="14" fill="#667085">All employees</text>
+
+  <rect x="450" y="410" width="200" height="110" rx="8" fill="#ffffff" stroke="#dde3ea"/>
+  <text x="478" y="448" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#18202f">Governance</text>
+  <text x="478" y="480" font-family="Arial, sans-serif" font-size="14" fill="#667085">Audit trail</text>
+  <text x="478" y="504" font-family="Arial, sans-serif" font-size="14" fill="#667085">Escalation log</text>
+
+  <rect x="800" y="410" width="220" height="110" rx="8" fill="#ffffff" stroke="#dde3ea"/>
+  <text x="828" y="448" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#18202f">Future Integrations</text>
+  <text x="828" y="480" font-family="Arial, sans-serif" font-size="14" fill="#667085">Microsoft Entra ID</text>
+  <text x="828" y="504" font-family="Arial, sans-serif" font-size="14" fill="#667085">Email and Teams</text>
+
+  <path d="M520 310 C450 365 320 365 230 410" stroke="#b45309" stroke-width="2.5" fill="none"/>
+  <polygon points="230,410 243,407 237,397" fill="#b45309"/>
+  <path d="M565 310 V410" stroke="#b45309" stroke-width="2.5" fill="none"/>
+  <polygon points="565,410 558,398 572,398" fill="#b45309"/>
+  <path d="M620 310 C690 365 790 365 900 410" stroke="#b45309" stroke-width="2.5" fill="none"/>
+  <polygon points="900,410 887,407 893,397" fill="#b45309"/>
+
+  <rect x="60" y="585" width="980" height="46" rx="8" fill="#eef7f5" stroke="#99f6e4"/>
+  <text x="84" y="614" font-family="Arial, sans-serif" font-size="15" fill="#0f766e">Production upgrade: replace JSON with PostgreSQL / Azure SQL, enable Entra ID SSO, and route notifications through email or Teams.</text>
+</svg>

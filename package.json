@@ -1,0 +1,20 @@
+{
+  "name": "atomquest-goal-portal",
+  "version": "1.0.0",
+  "description": "AtomQuest Hackathon 1.0 Goal Setting and Tracking Portal",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "goal-setting",
+    "performance",
+    "hackathon"
+  ],
+  "author": "AtomQuest Submission",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}

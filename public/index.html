@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AtomQuest Goal Portal</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark">AQ</div>
+          <div>
+            <strong>AtomQuest</strong>
+            <span>Goal Portal</span>
+          </div>
+        </div>
+        <label class="field compact">
+          <span>Demo login</span>
+          <select id="userSelect"></select>
+        </label>
+        <nav id="nav"></nav>
+        <div class="cycle-card">
+          <span class="eyebrow">Active window</span>
+          <strong id="activeWindow">Loading</strong>
+          <small id="activeWindowDate"></small>
+        </div>
+      </aside>
+
+      <main>
+        <header class="topbar">
+          <div>
+            <p class="eyebrow" id="roleLabel">Employee</p>
+            <h1 id="pageTitle">Dashboard</h1>
+          </div>
+          <div class="top-actions">
+            <button class="icon-button" id="refreshBtn" title="Refresh data">↻</button>
+            <a class="button ghost" id="reportLink" href="/api/report.csv">CSV Report</a>
+          </div>
+        </header>
+
+        <section id="alerts"></section>
+        <section id="view"></section>
+      </main>
+    </div>
+
+    <template id="emptyState">
+      <div class="empty">
+        <strong>No records yet</strong>
+        <span>Use the actions on this page to create the first one.</span>
+      </div>
+    </template>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
