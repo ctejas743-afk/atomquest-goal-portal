@@ -7,6 +7,7 @@ const state = {
 const $ = selector => document.querySelector(selector);
 const view = $("#view");
 const alerts = $("#alerts");
+const API_BASE = location.port === "3000" ? "" : "http://127.0.0.1:3000";
 const periodLabels = { "goal-setting": "Goal Setting", q1: "Q1", q2: "Q2", q3: "Q3", q4: "Q4 / Annual" };
 const periods = ["q1", "q2", "q3", "q4"];
 
@@ -74,7 +75,7 @@ function weightedProgress(goals, p = period()) {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, {
+  const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -91,10 +92,15 @@ async function api(path, options = {}) {
 }
 
 async function load() {
-  const response = await fetch("/api/bootstrap", { headers: { "x-user-id": state.userId } });
-  state.data = await response.json();
-  if (!state.data.users.some(user => user.id === state.userId)) state.userId = state.data.users[0].id;
-  render();
+  try {
+    const response = await fetch(`${API_BASE}/api/bootstrap`, { headers: { "x-user-id": state.userId } });
+    if (!response.ok) throw new Error(`API returned ${response.status}`);
+    state.data = await response.json();
+    if (!state.data.users.some(user => user.id === state.userId)) state.userId = state.data.users[0].id;
+    render();
+  } catch (error) {
+    alerts.innerHTML = `<div class="notice error">Backend API is not reachable. Start it with <strong>npm start</strong>, then open <strong>http://127.0.0.1:3000</strong>. Live Server also works after the backend is running.</div>`;
+  }
 }
 
 function show(message, error = false) {
@@ -119,7 +125,7 @@ function renderShell() {
   $("#activeWindow").textContent = periodLabels[period()];
   $("#activeWindowDate").textContent = `Opens ${state.data.cycle.windows[period()].opens}`;
   $("#reportLink").style.display = ["manager", "admin"].includes(user.role) ? "inline-flex" : "none";
-  $("#reportLink").href = `/api/report.csv?user=${state.userId}`;
+  $("#reportLink").href = `${API_BASE}/api/report.csv?user=${state.userId}`;
   const allowed = navItems(user);
   if (!allowed.some(item => item.id === state.view)) state.view = "dashboard";
   $("#nav").innerHTML = allowed.map(item => `<button class="${state.view === item.id ? "active" : ""}" data-nav="${item.id}">${item.label}</button>`).join("");

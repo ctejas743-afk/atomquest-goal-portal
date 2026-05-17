@@ -9,7 +9,12 @@ const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "public");
 const DB_PATH = path.join(ROOT, "backend", "data", "db.json");
 
-const jsonHeaders = { "Content-Type": "application/json; charset=utf-8" };
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET,POST,PUT,OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type,x-user-id"
+};
+const jsonHeaders = { "Content-Type": "application/json; charset=utf-8", ...corsHeaders };
 const mime = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -31,8 +36,8 @@ function id(prefix) {
 }
 
 function send(res, status, payload, headers = jsonHeaders) {
-  res.writeHead(status, headers);
-  res.end(typeof payload === "string" ? payload : JSON.stringify(payload));
+  res.writeHead(status, { ...corsHeaders, ...headers });
+  res.end(typeof payload === "string" || Buffer.isBuffer(payload) ? payload : JSON.stringify(payload));
 }
 
 function body(req) {
@@ -466,6 +471,7 @@ function staticFile(req, res, url) {
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
+  if (req.method === "OPTIONS") return send(res, 204, "");
   if (url.pathname.startsWith("/api/")) return api(req, res, url);
   return staticFile(req, res, url);
 });
