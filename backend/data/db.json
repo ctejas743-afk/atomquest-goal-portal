@@ -249,6 +249,39 @@
   ],
   "auditLogs": [
     {
+      "id": "audit-1779025414751-29e03f",
+      "entityType": "escalationRule",
+      "entityId": "all",
+      "actorId": "u-admin",
+      "action": "configure_escalations",
+      "field": "rules",
+      "before": "",
+      "after": "[{\"id\":\"rule-goals-not-submitted\",\"name\":\"Employee has not submitted goals\",\"condition\":\"goals_not_submitted\",\"days\":7,\"escalateTo\":\"manager\",\"enabled\":true},{\"id\":\"rule-manager-not-approved\",\"name\":\"Manager has not approved submitted goals\",\"condition\":\"manager_not_approved\",\"days\":5,\"escalateTo\":\"hr\",\"enabled\":true},{\"id\":\"rule-checkin-not-completed\",\"name\":\"Quarterly check-in not completed\",\"condition\":\"checkin_not_completed\",\"days\":10,\"escalateTo\":\"hr\",\"enabled\":true}]",
+      "createdAt": "2026-05-17T13:43:34.751Z"
+    },
+    {
+      "id": "audit-1779025335916-4c3b4a",
+      "entityType": "integration",
+      "entityId": "settings",
+      "actorId": "u-admin",
+      "action": "configure_integrations",
+      "field": "settings",
+      "before": "",
+      "after": "{\"entraSsoEnabled\":true,\"entraTenantId\":\"demo-tenant\",\"hierarchySource\":\"Microsoft Entra manager\",\"roleGroupMapping\":\"HR/Admin, L1/Manager, Employees\",\"emailEnabled\":true,\"teamsEnabled\":true,\"teamsWebhookUrl\":\"demo\",\"deepLinksEnabled\":true}",
+      "createdAt": "2026-05-17T13:42:15.916Z"
+    },
+    {
+      "id": "audit-1779025335914-47678e",
+      "entityType": "escalation",
+      "entityId": "rules",
+      "actorId": "u-admin",
+      "action": "run_escalations",
+      "field": "created",
+      "before": "",
+      "after": "1",
+      "createdAt": "2026-05-17T13:42:15.914Z"
+    },
+    {
       "id": "audit-1779024613583-88a227",
       "entityType": "checkin",
       "entityId": "checkin-1779024613583-73cf46",
@@ -394,6 +427,26 @@
   ],
   "notifications": [
     {
+      "id": "notification-1779025335914-3f1afb",
+      "toUserId": "u-manager-ops",
+      "message": "Riya Kapoor: Goals not submitted within 7 days of cycle opening.",
+      "type": "escalation",
+      "channel": "in-app/email/teams-simulated",
+      "deepLink": "#goals",
+      "read": false,
+      "createdAt": "2026-05-17T13:42:15.914Z"
+    },
+    {
+      "id": "notification-1779025335914-1c4bdb",
+      "toUserId": "u-employee-ops",
+      "message": "Goals not submitted within 7 days of cycle opening.",
+      "type": "escalation",
+      "channel": "in-app/email/teams-simulated",
+      "deepLink": "#goals",
+      "read": false,
+      "createdAt": "2026-05-17T13:42:15.914Z"
+    },
+    {
       "id": "notification-1779024613583-72316d",
       "toUserId": "u-employee-2",
       "message": "Mira Shah recorded your Q1 check-in.",
@@ -436,6 +489,18 @@
   ],
   "escalations": [
     {
+      "id": "escalation-1779025335914-da348b",
+      "key": "rule-goals-not-submitted:u-employee-ops:goal-setting",
+      "ruleId": "rule-goals-not-submitted",
+      "employeeId": "u-employee-ops",
+      "managerId": "u-manager-ops",
+      "period": "goal-setting",
+      "reason": "Goals not submitted within 7 days of cycle opening.",
+      "level": "manager",
+      "status": "open",
+      "createdAt": "2026-05-17T13:42:15.914Z"
+    },
+    {
       "id": "e-seed-1",
       "employeeId": "u-employee-2",
       "managerId": "u-manager",
@@ -445,5 +510,41 @@
       "status": "open",
       "createdAt": "2026-05-09T09:00:00.000Z"
     }
-  ]
+  ],
+  "escalationRules": [
+    {
+      "id": "rule-goals-not-submitted",
+      "name": "Employee has not submitted goals",
+      "condition": "goals_not_submitted",
+      "days": 7,
+      "escalateTo": "manager",
+      "enabled": true
+    },
+    {
+      "id": "rule-manager-not-approved",
+      "name": "Manager has not approved submitted goals",
+      "condition": "manager_not_approved",
+      "days": 5,
+      "escalateTo": "hr",
+      "enabled": true
+    },
+    {
+      "id": "rule-checkin-not-completed",
+      "name": "Quarterly check-in not completed",
+      "condition": "checkin_not_completed",
+      "days": 10,
+      "escalateTo": "hr",
+      "enabled": true
+    }
+  ],
+  "integrationSettings": {
+    "entraSsoEnabled": true,
+    "entraTenantId": "demo-tenant",
+    "hierarchySource": "Microsoft Entra manager",
+    "roleGroupMapping": "HR/Admin, L1/Manager, Employees",
+    "emailEnabled": true,
+    "teamsEnabled": true,
+    "teamsWebhookUrl": "demo",
+    "deepLinksEnabled": true
+  }
 }

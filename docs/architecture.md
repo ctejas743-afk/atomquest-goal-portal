@@ -6,11 +6,12 @@ The portal is intentionally simple and low-cost for hackathon evaluation:
 2. The frontend is a vanilla JavaScript single-page app.
 3. Data is persisted in `backend/data/db.json`.
 4. CSV reports are generated directly from the persisted goal and achievement records.
-5. Audit events are written on workflow and post-lock changes.
+5. Audit events are written on workflow, hierarchy, integration, escalation, and post-lock changes.
+6. Admin governance tools configure escalation rules and integration readiness settings.
 
 ## Main Modules
 
-- `server.js`: API routing, validation, workflow enforcement, audit logging, CSV export, and static file serving.
+- `server.js`: API routing, validation, workflow enforcement, audit logging, escalation evaluation, hierarchy management, CSV export, and static file serving.
 - `public/index.html`: SPA shell.
 - `public/app.js`: role-specific dashboards and UI workflows.
 - `public/styles.css`: responsive application styling.

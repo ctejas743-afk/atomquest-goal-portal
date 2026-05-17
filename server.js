@@ -97,14 +97,25 @@ function valueForLog(value) {
 }
 
 function notify(db, toUserId, message, type = "info") {
+  const link = type === "submission" ? "#approvals" : type === "checkin" || type === "achievement" ? "#checkins" : "#goals";
   db.notifications.unshift({
     id: id("notification"),
     toUserId,
     message,
     type,
+    channel: "in-app/email/teams-simulated",
+    deepLink: link,
     read: false,
     createdAt: new Date().toISOString()
   });
+}
+
+function isWindowOpen(db, period) {
+  return db.cycle.windows[period] && db.cycle.windows[period].status === "open";
+}
+
+function requireGoalSettingWindow(db) {
+  return isWindowOpen(db, "goal-setting") ? null : "Goal creation, submission, approval, and shared KPI push are available only during the Phase 1 goal-setting window.";
 }
 
 function validateGoalSet(goals) {
@@ -170,11 +181,98 @@ function getSummary(db) {
   });
   const thrustCounts = {};
   const statusCounts = {};
+  const uomCounts = {};
+  const qoq = {};
   for (const goal of db.goals) {
     thrustCounts[goal.thrustArea] = (thrustCounts[goal.thrustArea] || 0) + 1;
     statusCounts[goal.status] = (statusCounts[goal.status] || 0) + 1;
+    uomCounts[goal.uomType] = (uomCounts[goal.uomType] || 0) + 1;
   }
-  return { completion, thrustCounts, statusCounts };
+  for (const period of periods) {
+    const lockedGoals = db.goals.filter(goal => goal.status === "locked");
+    const scores = lockedGoals.map(goal => scoreGoal(goal, period)).filter(score => score !== null);
+    qoq[period] = scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0;
+  }
+  return { completion, thrustCounts, statusCounts, uomCounts, qoq };
+}
+
+function escalationKey(ruleId, employeeId, period) {
+  return `${ruleId}:${employeeId}:${period}`;
+}
+
+function existingEscalationKeys(db) {
+  return new Set(db.escalations.map(item => item.key).filter(Boolean));
+}
+
+function daysSince(dateValue, now = new Date()) {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return 0;
+  return Math.floor((now - date) / (1000 * 60 * 60 * 24));
+}
+
+function addEscalation(db, keys, rule, employee, reason, period, now) {
+  const key = escalationKey(rule.id, employee.id, period);
+  if (keys.has(key)) return 0;
+  const manager = user(db, employee.managerId);
+  db.escalations.unshift({
+    id: id("escalation"),
+    key,
+    ruleId: rule.id,
+    employeeId: employee.id,
+    managerId: employee.managerId,
+    period,
+    reason,
+    level: rule.escalateTo,
+    status: "open",
+    createdAt: now.toISOString()
+  });
+  notify(db, employee.id, reason, "escalation");
+  if (manager) notify(db, manager.id, `${employee.name}: ${reason}`, "escalation");
+  const hr = db.users.find(item => item.role === "admin");
+  if (hr && rule.escalateTo === "hr") notify(db, hr.id, `${employee.name}: ${reason}`, "escalation");
+  keys.add(key);
+  return 1;
+}
+
+function runEscalations(db) {
+  const rules = (db.escalationRules || []).filter(rule => rule.enabled);
+  const employees = db.users.filter(item => item.role === "employee");
+  const keys = existingEscalationKeys(db);
+  const now = new Date();
+  let created = 0;
+  for (const rule of rules) {
+    if (rule.condition === "goals_not_submitted") {
+      const open = db.cycle.windows["goal-setting"].opens;
+      if (daysSince(open, now) < Number(rule.days || 0)) continue;
+      for (const employee of employees) {
+        const goals = db.goals.filter(goal => goal.employeeId === employee.id && goal.status !== "archived");
+        const done = goals.length && goals.every(goal => ["submitted", "locked"].includes(goal.status));
+        if (!done) {
+          created += addEscalation(db, keys, rule, employee, `Goals not submitted within ${rule.days} days of cycle opening.`, "goal-setting", now);
+        }
+      }
+    }
+    if (rule.condition === "manager_not_approved") {
+      for (const employee of employees) {
+        const submitted = db.goals.filter(goal => goal.employeeId === employee.id && goal.status === "submitted");
+        if (submitted.some(goal => daysSince(goal.updatedAt, now) >= Number(rule.days || 0))) {
+          created += addEscalation(db, keys, rule, employee, `Manager approval pending for ${rule.days}+ days after submission.`, "goal-setting", now);
+        }
+      }
+    }
+    if (rule.condition === "checkin_not_completed") {
+      const active = db.cycle.activePeriod;
+      if (!["q1", "q2", "q3", "q4"].includes(active)) continue;
+      if (daysSince(db.cycle.windows[active].opens, now) < Number(rule.days || 0)) continue;
+      for (const employee of employees) {
+        const done = db.checkins.some(checkin => checkin.employeeId === employee.id && checkin.period === active);
+        if (!done) {
+          created += addEscalation(db, keys, rule, employee, `${active.toUpperCase()} check-in not completed within ${rule.days} days of window opening.`, active, now);
+        }
+      }
+    }
+  }
+  return created;
 }
 
 function enrich(db) {
@@ -186,6 +284,8 @@ function enrich(db) {
     auditLogs: db.auditLogs,
     notifications: db.notifications,
     escalations: db.escalations,
+    escalationRules: db.escalationRules || [],
+    integrationSettings: db.integrationSettings || {},
     summary: getSummary(db)
   };
 }
@@ -202,6 +302,8 @@ async function api(req, res, url) {
 
     if (req.method === "POST" && url.pathname === "/api/goals") {
       if (!actor || actor.role === "manager") return send(res, 403, { error: "Only employees or admins can create goals here." });
+      const windowError = requireGoalSettingWindow(db);
+      if (windowError) return send(res, 400, { error: windowError });
       const payload = await body(req);
       const employeeId = actor.role === "admin" ? payload.employeeId : actor.id;
       if (!canSeeEmployee(db, actor, employeeId)) return send(res, 403, { error: "You cannot create for this employee." });
@@ -244,6 +346,7 @@ async function api(req, res, url) {
       const managerApprovalEdit = actor.role === "manager" && goal.status === "submitted";
       const adminUnlockEdit = actor.role === "admin";
       const employeeDraftEdit = actor.id === goal.employeeId && ["draft", "returned"].includes(goal.status);
+      if ((managerApprovalEdit || employeeDraftEdit) && requireGoalSettingWindow(db)) return send(res, 400, { error: requireGoalSettingWindow(db) });
       if (!managerApprovalEdit && !adminUnlockEdit && !employeeDraftEdit) {
         return send(res, 409, { error: "This goal is locked or not editable in the current workflow." });
       }
@@ -264,6 +367,8 @@ async function api(req, res, url) {
 
     if (req.method === "POST" && parts[0] === "api" && parts[1] === "goals" && parts[3] === "submit") {
       const employeeId = parts[2];
+      const windowError = requireGoalSettingWindow(db);
+      if (windowError) return send(res, 400, { error: windowError });
       if (!actor || actor.id !== employeeId) return send(res, 403, { error: "Only the employee can submit their own goals." });
       const goals = db.goals.filter(goal => goal.employeeId === employeeId && ["draft", "returned"].includes(goal.status));
       const allEmployeeGoals = db.goals.filter(goal => goal.employeeId === employeeId && goal.status !== "archived");
@@ -284,6 +389,8 @@ async function api(req, res, url) {
     if (req.method === "POST" && parts[0] === "api" && parts[1] === "goals" && parts[3] === "decision") {
       const employeeId = parts[2];
       const payload = await body(req);
+      const windowError = requireGoalSettingWindow(db);
+      if (windowError) return send(res, 400, { error: windowError });
       if (!actor || actor.role !== "manager" || !managedEmployeeIds(db, actor.id).includes(employeeId)) {
         return send(res, 403, { error: "Only the L1 manager can decide this goal sheet." });
       }
@@ -315,6 +422,8 @@ async function api(req, res, url) {
 
     if (req.method === "POST" && url.pathname === "/api/shared-goals") {
       if (!actor || !["manager", "admin"].includes(actor.role)) return send(res, 403, { error: "Only managers or admins can push shared goals." });
+      const windowError = requireGoalSettingWindow(db);
+      if (windowError) return send(res, 400, { error: windowError });
       const payload = await body(req);
       const recipients = (payload.employeeIds || []).filter(employeeId => canSeeEmployee(db, actor, employeeId));
       if (!recipients.length) return send(res, 400, { error: "Select at least one eligible recipient." });
@@ -420,6 +529,67 @@ async function api(req, res, url) {
         addAudit(db, actor.id, "unlock", "goal", goal.id, "status", "locked", "returned");
       }
       notify(db, payload.employeeId, "Admin unlocked your goal sheet for exception handling.", "unlock");
+      writeDb(db);
+      return send(res, 200, enrich(db));
+    }
+
+    if (req.method === "PUT" && parts[0] === "api" && parts[1] === "users" && parts[2]) {
+      if (!actor || actor.role !== "admin") return send(res, 403, { error: "Only Admin / HR can manage org hierarchy." });
+      const target = user(db, parts[2]);
+      if (!target) return send(res, 404, { error: "User not found." });
+      const payload = await body(req);
+      const fields = ["name", "email", "department", "role", "managerId"];
+      for (const field of fields) {
+        if (!(field in payload)) continue;
+        if (field === "role" && !["employee", "manager", "admin"].includes(payload[field])) return send(res, 400, { error: "Invalid role." });
+        if (field === "managerId" && payload[field] && !user(db, payload[field])) return send(res, 400, { error: "Manager not found." });
+        if (field === "managerId" && payload[field] === target.id) return send(res, 400, { error: "A user cannot manage themselves." });
+        const before = target[field];
+        target[field] = payload[field] || null;
+        if (before !== target[field]) addAudit(db, actor.id, "update_hierarchy", "user", target.id, field, before, target[field]);
+      }
+      writeDb(db);
+      return send(res, 200, enrich(db));
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/escalations/run") {
+      if (!actor || actor.role !== "admin") return send(res, 403, { error: "Only Admin / HR can evaluate escalation rules." });
+      const created = runEscalations(db);
+      addAudit(db, actor.id, "run_escalations", "escalation", "rules", "created", "", created);
+      writeDb(db);
+      return send(res, 200, { ...enrich(db), escalationRun: { created } });
+    }
+
+    if (req.method === "PUT" && url.pathname === "/api/escalation-rules") {
+      if (!actor || actor.role !== "admin") return send(res, 403, { error: "Only Admin / HR can configure escalation rules." });
+      const payload = await body(req);
+      db.escalationRules = (payload.rules || []).map(rule => ({
+        id: rule.id || id("rule"),
+        name: rule.name || "Escalation rule",
+        condition: rule.condition,
+        days: Number(rule.days || 0),
+        escalateTo: rule.escalateTo || "manager",
+        enabled: Boolean(rule.enabled)
+      }));
+      addAudit(db, actor.id, "configure_escalations", "escalationRule", "all", "rules", "", db.escalationRules);
+      writeDb(db);
+      return send(res, 200, enrich(db));
+    }
+
+    if (req.method === "PUT" && url.pathname === "/api/integrations") {
+      if (!actor || actor.role !== "admin") return send(res, 403, { error: "Only Admin / HR can configure integrations." });
+      const payload = await body(req);
+      db.integrationSettings = {
+        entraSsoEnabled: Boolean(payload.entraSsoEnabled),
+        entraTenantId: payload.entraTenantId || "",
+        hierarchySource: payload.hierarchySource || "Seeded org hierarchy",
+        roleGroupMapping: payload.roleGroupMapping || "Admin, Manager, Employee",
+        emailEnabled: Boolean(payload.emailEnabled),
+        teamsEnabled: Boolean(payload.teamsEnabled),
+        teamsWebhookUrl: payload.teamsWebhookUrl || "",
+        deepLinksEnabled: Boolean(payload.deepLinksEnabled)
+      };
+      addAudit(db, actor.id, "configure_integrations", "integration", "settings", "settings", "", db.integrationSettings);
       writeDb(db);
       return send(res, 200, enrich(db));
     }

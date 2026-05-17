@@ -153,6 +153,12 @@ textarea {
   width: 100%;
 }
 
+input[type="checkbox"] {
+  width: 20px;
+  min-height: 20px;
+  accent-color: var(--accent);
+}
+
 textarea {
   min-height: 86px;
   resize: vertical;

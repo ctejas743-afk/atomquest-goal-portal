@@ -112,7 +112,7 @@ function navItems(user) {
   const base = [{ id: "dashboard", label: "Dashboard" }, { id: "goals", label: "Goals" }];
   if (user.role === "employee") base.push({ id: "checkins", label: "My Check-ins" });
   if (user.role === "manager") base.push({ id: "approvals", label: "Approvals" }, { id: "checkins", label: "Team Check-ins" }, { id: "shared", label: "Shared KPIs" });
-  if (user.role === "admin") base.push({ id: "admin", label: "Admin / HR" }, { id: "shared", label: "Shared KPIs" });
+  if (user.role === "admin") base.push({ id: "admin", label: "Admin / HR" }, { id: "governance", label: "Governance" }, { id: "shared", label: "Shared KPIs" });
   base.push({ id: "analytics", label: "Analytics" }, { id: "audit", label: "Audit Trail" });
   return base;
 }
@@ -140,6 +140,7 @@ function render() {
     checkins: renderCheckins,
     shared: renderShared,
     admin: renderAdmin,
+    governance: renderGovernance,
     analytics: renderAnalytics,
     audit: renderAudit
   };
@@ -219,15 +220,17 @@ function renderGoals() {
   const user = currentUser();
   const employeeId = user.role === "employee" ? user.id : $("#employeeFilter")?.value || state.data.users.find(item => item.role === "employee")?.id;
   const goals = employeeGoals(employeeId);
-  const canCreate = user.role === "employee" && goals.every(goal => ["draft", "returned"].includes(goal.status)) && goals.length < 8;
+  const goalSettingOpen = state.data.cycle.windows["goal-setting"].status === "open";
+  const canCreate = goalSettingOpen && user.role === "employee" && goals.every(goal => ["draft", "returned"].includes(goal.status)) && goals.length < 8;
   view.innerHTML = `
     <div class="grid">
+      ${goalSettingOpen ? "" : `<div class="notice">Goal creation, editing, submission, approval, and shared KPI push are locked because the active window is ${periodLabels[period()]}.</div>`}
       ${user.role !== "employee" ? employeeFilter(employeeId) : ""}
       <section class="panel">
         <div class="panel-header">
           <div><h2>Goal Sheet</h2><small>Total weightage: ${goals.reduce((sum, goal) => sum + Number(goal.weightage || 0), 0)}% · Status: ${goalSheetStatus(goals)}</small></div>
           <div class="actions">
-            ${user.role === "employee" ? `<button data-submit-goals="${user.id}">Submit for Approval</button>` : ""}
+            ${user.role === "employee" ? `<button ${goalSettingOpen ? "" : "disabled"} data-submit-goals="${user.id}">Submit for Approval</button>` : ""}
           </div>
         </div>
         ${goalTable(goals, { editable: user.role === "employee" || user.role === "admin" })}
@@ -267,9 +270,10 @@ function goalForm() {
 function renderApprovals() {
   const user = currentUser();
   const team = teamMembers(user.id);
+  const goalSettingOpen = state.data.cycle.windows["goal-setting"].status === "open";
   view.innerHTML = `
     <section class="panel">
-      <h2>Manager Approval Workflow</h2>
+      <div class="panel-header"><h2>Manager Approval Workflow</h2>${badge(goalSettingOpen ? "goal-setting open" : "goal-setting closed")}</div>
       ${team.map(employee => approvalCard(employee)).join("") || empty()}
     </section>
   `;
@@ -277,7 +281,7 @@ function renderApprovals() {
 
 function approvalCard(employee) {
   const goals = employeeGoals(employee.id);
-  const submitted = goals.some(goal => goal.status === "submitted");
+  const submitted = state.data.cycle.windows["goal-setting"].status === "open" && goals.some(goal => goal.status === "submitted");
   return `
     <div class="panel">
       <div class="panel-header">
@@ -337,7 +341,9 @@ function checkinList(employeeId) {
 function renderShared() {
   const user = currentUser();
   const eligible = user.role === "manager" ? teamMembers(user.id) : state.data.users.filter(item => item.role === "employee");
+  const goalSettingOpen = state.data.cycle.windows["goal-setting"].status === "open";
   view.innerHTML = `
+    ${goalSettingOpen ? "" : `<div class="notice">Shared KPI push is available only during the Phase 1 goal-setting window.</div>`}
     <section class="panel">
       <h2>Push Shared Departmental KPI</h2>
       <form id="sharedForm" class="form-grid">
@@ -350,7 +356,7 @@ function renderShared() {
         ${input("weightage", "Default Weightage %", "10", "", "number")}
         <label class="field full"><span>Recipients</span><select name="employeeIds" multiple size="5">${eligible.map(employee => `<option value="${employee.id}">${employee.name} · ${employee.department}</option>`).join("")}</select></label>
         ${textarea("description", "Description", "Title and target are read-only for recipients; they may adjust weightage only.", "full")}
-        <div class="actions full"><button>Push KPI</button></div>
+        <div class="actions full"><button ${goalSettingOpen ? "" : "disabled"}>Push KPI</button></div>
       </form>
     </section>
     <section class="panel"><h2>Existing Shared Goals</h2>${goalTable(state.data.goals.filter(goal => goal.sharedGroupId), { compact: true })}</section>
@@ -376,10 +382,54 @@ function renderAdmin() {
         </form>
       </section>
     </div>
-    <section class="panel"><h2>Org Hierarchy</h2>${orgTable()}</section>
+    <section class="panel">
+      <h2>Org Hierarchy</h2>
+      ${hierarchyForm()}
+      ${orgTable()}
+    </section>
     <section class="panel"><h2>Escalation Log</h2>${escalationTable()}</section>
   `;
   $("#cycleForm [name=activePeriod]").value = period();
+  populateHierarchyForm();
+}
+
+function renderGovernance() {
+  const settings = state.data.integrationSettings || {};
+  view.innerHTML = `
+    <div class="grid two">
+      <section class="panel">
+        <div class="panel-header">
+          <div><h2>Escalation Rules</h2><small>Configurable rule engine for delayed submissions, approvals, and check-ins.</small></div>
+          <button data-run-escalations>Run Rules Now</button>
+        </div>
+        <form id="rulesForm" class="grid">
+          ${state.data.escalationRules.map(rule => escalationRuleFields(rule)).join("")}
+          <div class="actions"><button>Save Rules</button></div>
+        </form>
+      </section>
+      <section class="panel">
+        <h2>Microsoft & Notification Readiness</h2>
+        <form id="integrationsForm" class="form-grid">
+          ${checkbox("entraSsoEnabled", "Microsoft Entra SSO", settings.entraSsoEnabled)}
+          ${input("entraTenantId", "Entra Tenant ID", "tenant-guid", "wide")}
+          ${input("hierarchySource", "Hierarchy Source", "manager attribute", "wide")}
+          ${input("roleGroupMapping", "Role Group Mapping", "Admin / Manager / Employee groups", "wide")}
+          ${checkbox("emailEnabled", "Email Notifications", settings.emailEnabled)}
+          ${checkbox("teamsEnabled", "Teams Notifications", settings.teamsEnabled)}
+          ${input("teamsWebhookUrl", "Teams Webhook URL", "https://...", "wide")}
+          ${checkbox("deepLinksEnabled", "Deep Links", settings.deepLinksEnabled)}
+          <div class="actions full"><button>Save Integration Settings</button></div>
+        </form>
+        <div class="notice">This demo stores integration settings and simulates email/Teams notifications in-app. Real delivery only needs tenant credentials or webhook secrets.</div>
+      </section>
+    </div>
+    <section class="panel"><h2>Escalation Log</h2>${escalationTable()}</section>
+  `;
+  for (const [key, value] of Object.entries(settings)) {
+    const field = document.querySelector(`[name="${key}"]`);
+    if (!field || field.type === "checkbox") continue;
+    field.value = value;
+  }
 }
 
 function renderAnalytics() {
@@ -388,6 +438,8 @@ function renderAnalytics() {
     <div class="grid two">
       <section class="panel"><h2>Completion Heatmap</h2>${completionBars()}</section>
       <section class="panel"><h2>Goal Distribution</h2>${bars(summary.thrustCounts)}</section>
+      <section class="panel"><h2>UoM Distribution</h2>${bars(summary.uomCounts)}</section>
+      <section class="panel"><h2>QoQ Achievement Trend</h2>${bars(summary.qoq)}</section>
       <section class="panel"><h2>Status Mix</h2>${bars(summary.statusCounts)}</section>
       <section class="panel"><h2>Manager Effectiveness</h2>${managerBars()}</section>
     </div>
@@ -514,13 +566,62 @@ function orgTable() {
   return `<div class="table-wrap"><table><thead><tr><th>Name</th><th>Role</th><th>Department</th><th>Manager</th></tr></thead><tbody>${state.data.users.map(user => `<tr><td>${user.name}</td><td>${user.role}</td><td>${user.department}</td><td>${userName(user.managerId)}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
+function hierarchyForm() {
+  const managerOptions = [["", "No manager"], ...state.data.users.map(item => [item.id, item.name])];
+  return `
+    <form id="hierarchyForm" class="form-grid">
+      ${select("userId", "User", state.data.users.map(item => [item.id, item.name]))}
+      ${input("name", "Name", "Full name")}
+      ${input("email", "Email", "name@company.com")}
+      ${input("department", "Department", "Department")}
+      ${select("role", "Role", [["employee", "Employee"], ["manager", "Manager"], ["admin", "Admin / HR"]])}
+      ${select("managerId", "Manager", managerOptions)}
+      <div class="actions full"><button>Save User / Hierarchy</button></div>
+    </form>
+  `;
+}
+
+function populateHierarchyForm() {
+  const form = $("#hierarchyForm");
+  if (!form) return;
+  const selected = state.data.users.find(user => user.id === form.userId.value);
+  if (!selected) return;
+  form.elements.name.value = selected.name;
+  form.elements.email.value = selected.email;
+  form.elements.department.value = selected.department;
+  form.elements.role.value = selected.role;
+  form.elements.managerId.value = selected.managerId || "";
+}
+
 function escalationTable() {
   if (!state.data.escalations.length) return empty();
   return `<div class="table-wrap"><table><thead><tr><th>Employee</th><th>Manager</th><th>Period</th><th>Reason</th><th>Level</th><th>Status</th></tr></thead><tbody>${state.data.escalations.map(item => `<tr><td>${userName(item.employeeId)}</td><td>${userName(item.managerId)}</td><td>${item.period}</td><td>${item.reason}</td><td>${item.level}</td><td>${badge(item.status)}</td></tr>`).join("")}</tbody></table></div>`;
 }
 
+function escalationRuleFields(rule) {
+  return `
+    <div class="panel" data-rule-row="${rule.id}">
+      <div class="form-grid">
+        <input type="hidden" name="id" value="${escapeHtml(rule.id)}">
+        ${input("name", "Rule Name", "Rule name", "wide")}
+        ${select("condition", "Condition", [["goals_not_submitted", "Employee goals not submitted"], ["manager_not_approved", "Manager approval pending"], ["checkin_not_completed", "Quarterly check-in pending"]])}
+        ${input("days", "Days", "7", "", "number")}
+        ${select("escalateTo", "Escalate To", [["employee", "Employee"], ["manager", "Manager"], ["hr", "Skip-level / HR"]])}
+        ${checkbox("enabled", "Enabled", rule.enabled)}
+      </div>
+    </div>
+  `.replace(`name="name" placeholder="Rule name"`, `name="name" value="${escapeHtml(rule.name)}" placeholder="Rule name"`)
+    .replace(`name="days" placeholder="7"`, `name="days" value="${escapeHtml(rule.days)}" placeholder="7"`)
+    .replace(`value="${rule.condition}"`, `value="${rule.condition}" selected`)
+    .replace(`value="${rule.escalateTo}"`, `value="${rule.escalateTo}" selected`);
+}
+
 function input(name, label, placeholder, cls = "", type = "text") {
   return `<label class="field ${cls}"><span>${label}</span><input type="${type}" name="${name}" placeholder="${placeholder}"></label>`;
+}
+
+function checkbox(name, label, checked = false) {
+  return `<label class="field"><span>${label}</span><input type="checkbox" name="${name}" ${checked ? "checked" : ""}></label>`;
 }
 
 function textarea(name, label, placeholder, cls = "") {
@@ -539,6 +640,25 @@ function formData(form) {
   return Object.fromEntries(new FormData(form).entries());
 }
 
+function rulesPayload(form) {
+  return [...form.querySelectorAll("[data-rule-row]")].map(row => ({
+    id: row.querySelector('[name="id"]').value,
+    name: row.querySelector('[name="name"]').value,
+    condition: row.querySelector('[name="condition"]').value,
+    days: row.querySelector('[name="days"]').value,
+    escalateTo: row.querySelector('[name="escalateTo"]').value,
+    enabled: row.querySelector('[name="enabled"]').checked
+  }));
+}
+
+function integrationPayload(form) {
+  const payload = formData(form);
+  for (const checkboxName of ["entraSsoEnabled", "emailEnabled", "teamsEnabled", "deepLinksEnabled"]) {
+    payload[checkboxName] = form.querySelector(`[name="${checkboxName}"]`).checked;
+  }
+  return payload;
+}
+
 document.addEventListener("change", event => {
   if (event.target.id === "userSelect") {
     state.userId = event.target.value;
@@ -548,6 +668,9 @@ document.addEventListener("change", event => {
     load();
   }
   if (event.target.id === "employeeFilter") renderGoals();
+  if (event.target.name === "userId" && event.target.closest("#hierarchyForm")) {
+    populateHierarchyForm();
+  }
 });
 
 document.addEventListener("click", async event => {
@@ -557,6 +680,7 @@ document.addEventListener("click", async event => {
   const submit = event.target.closest("[data-submit-goals]");
   const decision = event.target.closest("[data-decision]");
   const saveActual = event.target.closest("[data-save-actual]");
+  const runEscalations = event.target.closest("[data-run-escalations]");
   try {
     if (nav) {
       state.view = nav.dataset.nav;
@@ -569,6 +693,10 @@ document.addEventListener("click", async event => {
       return render();
     }
     if (event.target.id === "refreshBtn") return load();
+    if (runEscalations) {
+      const payload = await api("/api/escalations/run", { method: "POST" });
+      return show(`Escalation evaluation complete. Created ${payload.escalationRun.created} new escalation(s).`);
+    }
     if (saveGoal) {
       const id = saveGoal.dataset.saveGoal;
       const fields = [...document.querySelectorAll(`[data-goal-id="${id}"]`)];
@@ -622,6 +750,21 @@ document.addEventListener("submit", async event => {
     if (event.target.id === "unlockForm") {
       await api("/api/unlock", { method: "POST", body: JSON.stringify(formData(event.target)) });
       return show("Employee goals unlocked for exception handling.");
+    }
+    if (event.target.id === "hierarchyForm") {
+      const payload = formData(event.target);
+      const userId = payload.userId;
+      delete payload.userId;
+      await api(`/api/users/${userId}`, { method: "PUT", body: JSON.stringify(payload) });
+      return show("Org hierarchy updated.");
+    }
+    if (event.target.id === "rulesForm") {
+      await api("/api/escalation-rules", { method: "PUT", body: JSON.stringify({ rules: rulesPayload(event.target) }) });
+      return show("Escalation rules saved.");
+    }
+    if (event.target.id === "integrationsForm") {
+      await api("/api/integrations", { method: "PUT", body: JSON.stringify(integrationPayload(event.target)) });
+      return show("Integration settings saved.");
     }
   } catch (error) {
     show(error.message, true);

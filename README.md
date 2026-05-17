@@ -50,13 +50,41 @@ Additional employees and a second manager are seeded for reporting, hierarchy, a
 - Completion dashboard for employee and manager check-ins
 - Audit trail for workflow events, locked-goal changes, achievement updates, cycle changes, and unlocks
 - Admin org hierarchy and goal unlock capability
+- Goal-setting actions are enforced only during the Phase 1 window
+- Quarterly achievement and manager check-in actions are enforced only during open quarterly windows
 
 ## Bonus Features Included
 
-- Simulated in-app notifications for email/Teams-style event alerts
-- Rule-based escalation log
+- Simulated in-app notifications for email/Teams-style event alerts, including deep-link targets
+- Configurable rule-based escalation engine with Admin-run evaluation
 - Analytics dashboard with completion heatmap, goal distribution, status mix, and manager effectiveness
+- UoM distribution and quarter-on-quarter achievement trend analytics
+- Microsoft Entra ID, email, and Teams settings screen for tenant/webhook configuration readiness
 - Cost-optimized architecture with no paid dependencies required for demo
+
+## BRD Compliance Checklist
+
+| Requirement | Status | Where to Demo |
+| --- | --- | --- |
+| Employee creates and submits goal sheet | Implemented | Employee > Goals |
+| Thrust Area, title, description, UoM, target, weightage | Implemented | Employee > Goals |
+| Weightage = 100%, min 10%, max 8 goals | Implemented | Backend validation on submit and create |
+| L1 manager inline target/weight edits, approve, return | Implemented | Manager > Approvals |
+| Approved goals locked until Admin intervention | Implemented | Manager approval + Admin / HR unlock |
+| Shared goals pushed to multiple employees | Implemented | Manager/Admin > Shared KPIs |
+| Shared title/target read-only, recipient weight editable | Implemented | Employee > Goals |
+| Primary owner actual sync across shared goals | Implemented | Employee > My Check-ins |
+| Quarterly actual achievement and status | Implemented | Employee > My Check-ins |
+| Manager planned vs actual and comments | Implemented | Manager > Team Check-ins |
+| Progress formulas: Min, Max, Timeline, Zero | Implemented | Goal tables and dashboard progress |
+| Check-in schedule enforcement | Implemented | Admin opens cycle windows; API blocks wrong-window actions |
+| Employee, Manager, Admin role separation | Implemented | Sidebar demo login selector |
+| CSV / Excel-compatible achievement export | Implemented | Manager/Admin > CSV Report |
+| Completion dashboard | Implemented | Admin dashboard and Analytics |
+| Audit trail after lock / governance events | Implemented | Audit Trail |
+| Configurable escalation rules | Implemented | Admin > Governance |
+| Analytics module | Implemented | Analytics |
+| Entra ID / Email / Teams | Config-ready simulated demo | Admin > Governance |
 
 ## Suggested Demo Flow
 
