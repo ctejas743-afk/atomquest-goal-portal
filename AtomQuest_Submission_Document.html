@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>AtomQuest Hackathon Submission - Goal Setting Portal</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        color: #18202f;
+        line-height: 1.45;
+        max-width: 920px;
+        margin: 40px auto;
+      }
+      h1, h2 {
+        color: #101828;
+      }
+      code {
+        background: #f2f4f7;
+        padding: 2px 5px;
+        border-radius: 4px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 12px 0 24px;
+      }
+      th, td {
+        border: 1px solid #dde3ea;
+        padding: 9px;
+        text-align: left;
+      }
+      th {
+        background: #f6f8fb;
+      }
+      .note {
+        background: #eef7f5;
+        border: 1px solid #99f6e4;
+        padding: 12px;
+        border-radius: 8px;
+      }
+      img {
+        max-width: 100%;
+        border: 1px solid #dde3ea;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>AtomQuest Hackathon 1.0 Submission</h1>
+    <h2>Project: In-House Goal Setting &amp; Tracking Portal</h2>
+
+    <h2>Working Demo Link</h2>
+    <p><strong>Hosted demo URL:</strong> PASTE_HOSTED_DEMO_URL_HERE</p>
+    <p><strong>Local demo:</strong> <code>http://127.0.0.1:3000</code></p>
+    <p><strong>Run command:</strong> <code>npm start</code></p>
+
+    <h2>Source Code Repository</h2>
+    <p>PASTE_GITHUB_GITLAB_BITBUCKET_REPOSITORY_URL_HERE</p>
+
+    <h2>Demo Credentials</h2>
+    <p>The app includes a sidebar Demo login selector for all required roles.</p>
+    <table>
+      <thead>
+        <tr><th>Role</th><th>User</th><th>Email</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Employee</td><td>Aarav Mehta</td><td>employee@atomquest.local</td></tr>
+        <tr><td>Manager L1</td><td>Mira Shah</td><td>manager@atomquest.local</td></tr>
+        <tr><td>Admin / HR</td><td>Harshita Rao</td><td>admin@atomquest.local</td></tr>
+      </tbody>
+    </table>
+
+    <h2>Architecture Diagram</h2>
+    <p>Architecture diagram is included in the repository at <code>docs/architecture.svg</code>.</p>
+    <img src="docs/architecture.svg" alt="AtomQuest Goal Portal Architecture Diagram">
+
+    <h2>Implemented Scope</h2>
+    <ul>
+      <li>Employee goal creation, validation, and submission</li>
+      <li>Manager inline review, approval, return for rework, and goal locking</li>
+      <li>Admin cycle management, exception unlock, and org hierarchy management</li>
+      <li>Shared departmental KPIs and linked achievement sync</li>
+      <li>Quarterly achievement capture and manager check-in comments</li>
+      <li>Progress scoring for Min, Max, Timeline, and Zero-based goals</li>
+      <li>CSV achievement report, completion dashboard, and audit trail</li>
+      <li>Configurable escalation rules, escalation log, and analytics dashboard</li>
+      <li>Microsoft Entra/email/Teams configuration readiness with simulated notifications</li>
+    </ul>
+
+    <h2>Suggested Demo Flow</h2>
+    <ol>
+      <li>Start the app with <code>npm start</code> and open <code>http://127.0.0.1:3000</code>.</li>
+      <li>Login as Admin / HR and open Phase 1 goal-setting window.</li>
+      <li>Login as Employee and create/submit goals.</li>
+      <li>Login as Manager and approve or return submitted goals.</li>
+      <li>Login as Admin / HR and open a quarterly check-in window.</li>
+      <li>Login as Employee and enter achievements.</li>
+      <li>Login as Manager and record check-in comments.</li>
+      <li>Download the CSV report as Admin / HR or Manager.</li>
+    </ol>
+
+    <p class="note">
+      Real Microsoft Entra SSO, email delivery, and Teams bot delivery require external tenant/webhook credentials.
+      This project includes config-ready settings and simulated in-app notifications for hackathon demonstration.
+    </p>
+  </body>
+</html>
