@@ -7,7 +7,8 @@ const state = {
 const $ = selector => document.querySelector(selector);
 const view = $("#view");
 const alerts = $("#alerts");
-const API_BASE = location.port === "3000" ? "" : "http://127.0.0.1:3000";
+const isLocalPreview = ["127.0.0.1", "localhost"].includes(location.hostname) && location.port !== "3000";
+const API_BASE = isLocalPreview ? "http://127.0.0.1:3000" : "";
 const periodLabels = { "goal-setting": "Goal Setting", q1: "Q1", q2: "Q2", q3: "Q3", q4: "Q4 / Annual" };
 const periods = ["q1", "q2", "q3", "q4"];
 
